@@ -1,0 +1,8 @@
+[package]
+name = "viewer"
+version = "0.1.0"
+authors = ["nokaa <nokaa@cock.li>"]
+
+[dependencies]
+clap = "1.5.5"
+fe-rustty = { git = "https://github.com/Syntaf/fe-rustty.git" }
