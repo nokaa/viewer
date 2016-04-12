@@ -67,6 +67,7 @@ impl<'a> Term<'a> {
                         {
                             self.top_line += 1;
                             self.print_file();
+                            self.prompt_line_number();
                             self.term.swap_buffers().unwrap();
                         }
                     }
@@ -74,6 +75,7 @@ impl<'a> Term<'a> {
                         if self.top_line > 0 {
                             self.top_line -= 1;
                             self.print_file();
+                            self.prompt_line_number();
                             self.term.swap_buffers().unwrap();
                         }
                     }
@@ -145,6 +147,17 @@ impl<'a> Term<'a> {
 
         for (i, c) in self.filename.chars().enumerate() {
             self.term[(i, h)].set_ch(c);
+        }
+        self.prompt_line_number();
+    }
+
+    fn prompt_line_number(&mut self) {
+        let w = self.term.cols();
+        let h = self.term.rows() - 1;
+        let len = format!("{}/{} lines", self.bottom_line, self.contents.len() - 1);
+
+        for (i, c) in len.chars().rev().enumerate() {
+            self.term[(w-i-1, h)].set_ch(c);
         }
     }
 }
