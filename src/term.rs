@@ -60,7 +60,9 @@ impl<'a> Term<'a> {
             let evt = self.term.get_event(100).unwrap();
             if let Some(Event::Key(ch)) = evt {
                 match ch {
+                    // quit
                     'q' => self.quit = true,
+                    // Move down
                     'j' => {
                         if self.total_lines > self.term.rows() - 2 &&
                             self.bottom_line < self.contents.len() - 1
@@ -71,12 +73,47 @@ impl<'a> Term<'a> {
                             self.term.swap_buffers().unwrap();
                         }
                     }
+                    // Move up
                     'k' => {
                         if self.top_line > 0 {
                             self.top_line -= 1;
                             self.print_file();
                             self.prompt_line_number();
                             self.term.swap_buffers().unwrap();
+                        }
+                    }
+                    // Go to top
+                    'g' => {
+                        if self.top_line > 0 {
+                            self.top_line = 0;
+                            self.print_file();
+                            self.prompt_line_number();
+                            self.term.swap_buffers().unwrap();
+                        }
+                    }
+                    // Go to bottom
+                    'G' => {
+                        let len = self.contents.len() - 1;
+
+                        // Because we render the UI from the top, and some
+                        // file lines take multiple UI lines to render, we
+                        // can't be sure what the new `top_line` will be. 
+                        // Because of this, we make a guess and then increment
+                        // until we are right.
+                        //
+                        // TODO(nokaa): Maybe we should add a function to
+                        // render the UI from the bottom up as well, since
+                        // rendering to the UI is O(n^2).
+                        self.top_line = len - self.term.rows();
+                        loop {
+                            self.print_file();
+
+                            if self.bottom_line == len {
+                                self.prompt_line_number();
+                                self.term.swap_buffers().unwrap();
+                                break;
+                            }
+                            self.top_line += 1;
                         }
                     }
                     _ => { }
@@ -110,9 +147,11 @@ impl<'a> Term<'a> {
                     }
                 }
 
-                if j == w && i < h {
+                if j == w && i < h - 1 {
                     j = 0;
                     i += 1;
+                } else if j == w && i < h {
+                    break;
                 } else if i >= h {
                     break;
                 }
