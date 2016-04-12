@@ -57,6 +57,13 @@ impl<'a> Term<'a> {
         self.term.swap_buffers().unwrap();
 
         while !self.quit {
+            if self.term.check_resize() {
+                self.term.try_resize().unwrap();
+                self.print_file();
+                self.prompt();
+                self.term.swap_buffers().unwrap();
+            }
+
             let evt = self.term.get_event(100).unwrap();
             if let Some(Event::Key(ch)) = evt {
                 match ch {
@@ -216,6 +223,7 @@ impl<'a> Term<'a> {
 
         for i in 0..w {
             self.term[(i, h)].set_bg(Color::Red);
+            self.term[(i, h)].set_ch(' ');
         }
 
         for (i, c) in self.filename.chars().enumerate() {
