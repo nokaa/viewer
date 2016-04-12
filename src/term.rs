@@ -72,11 +72,11 @@ impl<'a> Term<'a> {
                     // Move down
                     'j' => {
                         if self.total_lines > self.term.rows() - 2 &&
-                            self.bottom_line < self.contents.len() - 1
+                            self.bottom_line < self.total_lines - 1
                         {
                             self.top_line += 1;
                             self.print_file();
-                            self.prompt_line_number();
+                            self.prompt();
                             self.term.swap_buffers().unwrap();
                         }
                     }
@@ -85,7 +85,7 @@ impl<'a> Term<'a> {
                         if self.top_line > 0 {
                             self.top_line -= 1;
                             self.print_file();
-                            self.prompt_line_number();
+                            self.prompt();
                             self.term.swap_buffers().unwrap();
                         }
                     }
@@ -94,18 +94,18 @@ impl<'a> Term<'a> {
                         if self.top_line > 0 {
                             self.top_line = 0;
                             self.print_file();
-                            self.prompt_line_number();
+                            self.prompt();
                             self.term.swap_buffers().unwrap();
                         }
                     }
                     // Go to bottom
                     'G' => {
-                        let len = self.contents.len() - 1;
+                        let len = self.total_lines - 1;
                         if len > self.term.rows() - 1 {
                             self.bottom_line = len;
 
                             self.print_file_reverse();
-                            self.prompt_line_number();
+                            self.prompt();
                             self.term.swap_buffers().unwrap();
                         }
                     }
@@ -118,7 +118,7 @@ impl<'a> Term<'a> {
     fn print_file(&mut self) {
         let w = self.term.cols();
         let h = self.term.rows() - 1;
-        let len = self.contents.len() - 1;
+        let len = self.total_lines - 1;
         let mut top_line = self.top_line;
 
         let mut i = 0;
@@ -235,7 +235,7 @@ impl<'a> Term<'a> {
     fn prompt_line_number(&mut self) {
         let w = self.term.cols();
         let h = self.term.rows() - 1;
-        let len = format!("{}/{} lines", self.bottom_line, self.contents.len() - 1);
+        let len = format!("{}/{} lines", self.bottom_line+1, self.total_lines);
 
         for (i, c) in len.chars().rev().enumerate() {
             self.term[(w-i-1, h)].set_ch(c);
