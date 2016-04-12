@@ -94,26 +94,12 @@ impl<'a> Term<'a> {
                     // Go to bottom
                     'G' => {
                         let len = self.contents.len() - 1;
+                        if len > self.term.rows() - 1 {
+                            self.bottom_line = len;
 
-                        // Because we render the UI from the top, and some
-                        // file lines take multiple UI lines to render, we
-                        // can't be sure what the new `top_line` will be. 
-                        // Because of this, we make a guess and then increment
-                        // until we are right.
-                        //
-                        // TODO(nokaa): Maybe we should add a function to
-                        // render the UI from the bottom up as well, since
-                        // rendering to the UI is O(n^2).
-                        self.top_line = len - self.term.rows();
-                        loop {
-                            self.print_file();
-
-                            if self.bottom_line == len {
-                                self.prompt_line_number();
-                                self.term.swap_buffers().unwrap();
-                                break;
-                            }
-                            self.top_line += 1;
+                            self.print_file_reverse();
+                            self.prompt_line_number();
+                            self.term.swap_buffers().unwrap();
                         }
                     }
                     _ => { }
@@ -174,6 +160,54 @@ impl<'a> Term<'a> {
         }
 
         self.bottom_line = top_line - 1;
+    }
+
+    fn print_file_reverse(&mut self) {
+        let w = self.term.cols();
+        let mut h = self.term.rows();
+        let mut bottom_line = self.bottom_line;
+
+        while h > 1 {
+            let line = &self.contents[bottom_line];
+            let mut j = 0;
+            for &c in line {
+                match c {
+                    b'\n' => break,
+                    b'\t' => {
+                        for k in 0..4 {
+                            self.term[(j+k, h-2)].set_ch(' ');
+                        }
+                        j += 4;
+                    }
+                    _ => {
+                        self.term[(j, h-2)].set_ch(c as char);
+                        j += 1;
+                    }
+                }
+
+                if j == w && h > 1 {
+                    j = 0;
+                    h -= 1;
+                } else if j == w && h > 0 {
+                    break;
+                } else if h == 0 {
+                    break;
+                }
+            }
+
+            // Write blank spaces for rest of line. This makes sure that
+            // if the line previously had more characters than it does now,
+            // the old characters are deleted.
+            while j < w {
+                self.term[(j, h-2)].set_ch(' ');
+                j += 1;
+            }
+
+            bottom_line -= 1;
+            h -= 1;
+        }
+
+        self.top_line = bottom_line + 1;
     }
 
     fn prompt(&mut self) {
