@@ -13,12 +13,19 @@ use std::io::{stderr, Write};
 use std::process;
 
 pub struct Term<'a> {
+    /// The terminal object that we use to modify our UI
     term: rustty::Terminal,
+    /// The name of the file we are viewing
     filename: &'a str,
+    /// The contents of `filename` as a `Vec` of lines.
     contents: Vec<Vec<u8>>,
+    /// The running status of our UI
     quit: bool,
+    /// The line at the top of the UI
     top_line: usize,
-    line: usize,
+    /// The bottom most line of the UI
+    bottom_line: usize,
+    /// The total number of lines in our file
     total_lines: usize,
 }
 
@@ -39,7 +46,7 @@ impl<'a> Term<'a> {
             contents: file,
             quit: false,
             top_line: 0,
-            line: 0,
+            bottom_line: 0,
             total_lines: total_lines,
         }
     }
@@ -54,6 +61,22 @@ impl<'a> Term<'a> {
             if let Some(Event::Key(ch)) = evt {
                 match ch {
                     'q' => self.quit = true,
+                    'j' => {
+                        if self.total_lines > self.term.rows() - 2 &&
+                            self.bottom_line < self.contents.len() - 1
+                        {
+                            self.top_line += 1;
+                            self.print_file();
+                            self.term.swap_buffers().unwrap();
+                        }
+                    }
+                    'k' => {
+                        if self.top_line > 0 {
+                            self.top_line -= 1;
+                            self.print_file();
+                            self.term.swap_buffers().unwrap();
+                        }
+                    }
                     _ => { }
                 }
             }
@@ -85,18 +108,31 @@ impl<'a> Term<'a> {
                     }
                 }
 
-                if j == w {
+                if j == w && i < h {
                     j = 0;
                     i += 1;
+                } else if i >= h {
+                    break;
                 }
+            }
+            // Write blank spaces for rest of line. This makes sure that
+            // if the line previously had more characters than it does now,
+            // the old characters are deleted.
+            while j < w {
+                self.term[(j, i)].set_ch(' ');
+                j += 1;
+            }
+
+            if top_line == len {
+                self.bottom_line = top_line;
+                return;
             }
 
             i += 1;
-            if top_line == len {
-                break;
-            }
             top_line += 1;
         }
+
+        self.bottom_line = top_line - 1;
     }
 
     fn prompt(&mut self) {
