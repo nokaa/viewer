@@ -176,42 +176,43 @@ impl<'a> Term<'a> {
 
         while h > 1 {
             let line = &self.contents[bottom_line];
-            let mut j = 0;
-            for &c in line {
-                match c {
-                    b'\n' => break,
-                    b'\t' => {
-                        for k in 0..4 {
-                            self.term[(j+k, h-2)].set_ch(' ');
+            let mut i = (line.len() / w) + 1;
+
+            while i > 0 {
+                let pos = w * (i - 1);
+                let mut j = 0;
+                while j < w {
+                    match line[pos+j] {
+                        b'\n' => break,
+                        b'\t' => {
+                            for k in 0..4 {
+                                self.term[(j+k, h-2)].set_ch(' ');
+                            }
+                            j += 4;
                         }
-                        j += 4;
-                    }
-                    _ => {
-                        self.term[(j, h-2)].set_ch(c as char);
-                        j += 1;
+                        c @ _ => {
+                            self.term[(j, h-2)].set_ch(c as char);
+                            j += 1;
+                        }
                     }
                 }
 
-                if j == w && h > 1 {
-                    j = 0;
+                // Write whitespace to rest of UI line
+                while j < w {
+                    self.term[(j, h-2)].set_ch(' ');
+                    j += 1;
+                }
+
+                if h > 2 {
                     h -= 1;
-                } else if j == w && h > 0 {
-                    break;
-                } else if h == 0 {
+                } else {
+                    h -= 1;
                     break;
                 }
-            }
 
-            // Write blank spaces for rest of line. This makes sure that
-            // if the line previously had more characters than it does now,
-            // the old characters are deleted.
-            while j < w {
-                self.term[(j, h-2)].set_ch(' ');
-                j += 1;
+                i -= 1;
             }
-
             bottom_line -= 1;
-            h -= 1;
         }
 
         self.top_line = bottom_line + 1;
